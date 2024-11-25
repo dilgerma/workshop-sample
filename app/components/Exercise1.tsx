@@ -24,8 +24,11 @@ export default function Exercise1() {
     const [value, setValue] = useState<string>()
 
     const commandHandler = (command: DoItCommand) => {
-        let resultEvent: DoneEvent = {data: {name: command.data.name}, type: "DoneEvent"}
-        findEventStore().appendToStream("aggregate", [resultEvent])
+        let resultEvent: DoneEvent = {
+            data: {
+                name: command.data.name
+            }, type: "DoneEvent"}
+        findEventStore().appendToStream("my-stream", [resultEvent])
     }
 
 
