@@ -1,8 +1,9 @@
 {
   "name": "Node.js 19 Development Container",
-  "image": "mcr.microsoft.com/vscode/devcontainers/javascript-node:19",
+  "image": "node:19",
   "extensions": [
     "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "ms-vsliveshare.vsliveshare"
   ]
 }
