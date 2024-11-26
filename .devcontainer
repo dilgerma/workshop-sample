@@ -5,5 +5,7 @@
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
     "ms-vsliveshare.vsliveshare"
-  ]
+  ],
+  "postCreateCommand": "nvm install 19 && nvm use 19 && npm install && npm run build && npm run dev"
+
 }
