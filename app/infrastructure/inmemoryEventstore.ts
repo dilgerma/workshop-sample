@@ -17,6 +17,18 @@ export const debugAllStreams = ():Map<string, EventEnvelope[]> => {
   return streams
 }
 
+export type Subscription= (nextExpectedStreamVersion: bigint, events:Event[])=>void
+
+const subscriptions = new Map<String, Subscription[]>
+
+export const subscribeStream = (stream:string, subscription:Subscription) => {
+  subscriptions.set(stream, [...subscriptions.get(stream)??[], subscription])
+}
+
+export const unsubscribeStream = (stream:string, subscription:Subscription) => {
+  subscriptions.set(stream, (subscriptions.get(stream)??[]).filter(subscribed => subscribed !== subscription))
+}
+
 export const findEventStore = (): EventStore => {
 
   const getAllEventsCount = () => {
@@ -116,7 +128,9 @@ export const findEventStore = (): EventStore => {
       const result: AppendToStreamResult = {
         nextExpectedStreamVersion: positionOfLastEventInTheStream,
       };
-
+      subscriptions.get(streamName)?.forEach((subscription)=>{
+        subscription(result.nextExpectedStreamVersion, events)
+      })
       return Promise.resolve(result);
     },
   };
