@@ -3,42 +3,44 @@
 
 ## Exercise
 
-In this exercise, we will add the possibility to book a room.
-A room is booked by it´s name and can only be booked once. 
-A bookable room must have been added before.
+In this exercise, we will build a comprehensive test suite for our 
+state view slice from the last exercise.
 
-### Step 1 - Implement the "Available Rooms" State View Slice
+If you click "Run Testcases" you will see, that besides there are a lot of red test cases.
 
-We will build the Read Model to project available rooms to be selected.
-You can add Rooms, but they do not show up in the drop-down menu.
+Using "Given / When / Then" or "Given / Then" allows us to set the system into a certain state.
 
-For this, you will need to implement 'availableRoomsStateView' Function.
+### Step 1 - Implement the state history
 
-The Read Model expects this data structure:
-```
-type AvailableRoom = {
-    number: string,
-    name: string
-}
-```
-
-You need to project the information in the Events to this structure.
-
-Hint - if a Room is booked, it should no longer be selectable.
-How can you project this information correctly?
+In TestRunner.tsx - provide sample history of events.
+This should be all the events that make up the history for this slice.
 
 ```
-const availableRoomsStateView = (events: InventoryEvents[]): AvailableRoom[] => {
-    let result: AvailableRoom[] = []
-    events.forEach((event) => {
-        /*
-        FOR EACH EVENT - adjust the result-array.
-        If a Room is added, append it to the array. ( result.push(...) )
-        If a Room is booked, remove it from the array. ( result = result.filter(...) )
-         */
-    })
-    return result
-}
+sample_history: [
+            {type: 'RoomAdded', data: {name: "Moonshine", roomNumber: "1a", floor: 1}},
+            // STEP 1 - add sample event history
+            // add another room named "Sunshine"
+            // add another room namde "Luna"
+            // book "Moonshine"
+        ],
 ```
 
+### Step 2 - Implement the correct assertions
 
+Based on the event history, you will need to provide the correct 
+assertions to make the test cases green.
+
+```
+{
+    test_name: "two rooms added should return both rooms in correct order",
+    event_count: 2,
+    test: (history) => {
+        // STEP 2 - implement conditions
+        const result = slice(history);
+        //assert(, "Two rooms should be returned");
+        //assert(, "First room should be Moonshine");
+        //assert(, "Second room should be Sunshine");
+        assert(false, "Implement me")
+    }
+},
+```
