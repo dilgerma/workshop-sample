@@ -1,9 +1,10 @@
 import {useState} from "react";
 import MarkdownViewer from "@/app/components/MarkdownViewer";
-import {InventoryEvents} from "@/app/exercises/Events";
-import {TestResultViewr} from "@/app/components/TestResultViewer";
-import type {Event} from "@event-driven-io/emmett";
+import {InventoryEvents, RoomBooked} from "@/app/exercises/Events";
 import {assert, TestCase, TestResult} from "@/app/exercises/tests/TestRunner";
+import {TestResultViewr} from "@/app/components/TestResultViewer";
+import {Command, Event} from "@event-driven-io/emmett";
+import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
 
 const markdown = require('!raw-loader!./exercise.md').default;
 
@@ -27,6 +28,29 @@ export const availableRoomsStateView = (events: InventoryEvents[]): AvailableRoo
     return result
 }
 
+export type BookRoomCommand = Command<
+    'BookRoom',
+    {
+        name: string,
+    }
+>;
+
+export const commandHandler = (events: Event[], command: BookRoomCommand): Event[] => {
+    let resultEvents = [{
+        type: 'RoomBooked',
+        data: {
+            name: command.data.name
+        }
+    } as RoomBooked]
+    findEventStore().appendToStream(
+        'Inventory',
+        resultEvents
+    )
+    return resultEvents
+
+}
+
+
 export default function Exercise() {
 
     const [testResults, setTestResults] = useState<TestResult[]>()
@@ -38,7 +62,8 @@ export default function Exercise() {
                 <h3>Run Tests</h3>
                 <button className={"button is-success"} onClick={() => {
                     setTestResults(runTests())
-                }}>Run Testcases</button>
+                }}>Run Testcases
+                </button>
             </div>
             <div>
                 {testResults ? <TestResultViewr results={testResults}/> : <span/>}
@@ -51,88 +76,57 @@ export default function Exercise() {
     </div>
 }
 
-/**
- * Test Cases
- */
 
-let test_collection: { slice_name: string, sample_history: Event[], tests: TestCase<any>[] }[] = []
 
-const prepareTestCollection = (slice: (events: Event[]) => any[]) => {
+let test_collection: {
+    slice_name: string,
+    sample_history: Event[],
+    tests: TestCase<BookRoomCommand>[]
+}[] = []
+
+export const prepareTest = (commandHandler: (events:Event[], command?: BookRoomCommand) => any[]) => {
     test_collection.push({
-        slice_name: "rooms state view",
+        slice_name: "book an added room",
         sample_history: [
-            {type: 'RoomAdded', data: {name: "Moonshine", roomNumber: "1a", floor: 1}},
             // STEP 1 - add sample event history
-            // add another room named "Sunshine"
-            // add another room namde "Luna"
+            //{type: 'RoomAdded', data: {name: "Moonshine", roomNumber: "1a", floor: 1}},
             // book "Moonshine"
+            // try to book "Moonshine" twice
         ],
         tests: [
             {
-                test_name: "no history should return empty array",
-                event_count: 0,
-                test: (history) => {
-                    const result = slice(history);
-                    assert(result.length == 0, "")
-                }
-            },
-            {
-                test_name: "one room added should return one room in correct position",
+                test_name: "Added Room should result in room booked event",
                 event_count: 1,
-                test: (history) => {
-                    const result = slice(history);
-                    assert(result.length == 1, "One room should be returned");
-                    assert(result[0].name, "First room should be Moonshine");
-                }
+                test: (events:Event[], command?:BookRoomCommand) => {
+                    const result = commandHandler(events, command!!);
+                    assert(false, "IMPLEMENT ME")
+                },
+                command: {type: 'BookRoom', data: {
+                        name: "Moonshine",
+                    }}
             },
             {
-                test_name: "two rooms added should return both rooms in correct order",
-                event_count: 2,
-                test: (history) => {
-                    // STEP 2 - implement conditions
-                    const result = slice(history);
-                    //assert(, "Two rooms should be returned");
-                    //assert(, "First room should be Moonshine");
-                    //assert(, "Second room should be Sunshine");
-                    assert(false, "Implement me")
+                test_name: "Cannot book the same room twice",
+                event_count: 1,
+                test: (events:Event[], command?:BookRoomCommand) => {
+                    const result = commandHandler(events, command!!);
+                    assert(result.length == 0, "Room cannot be booked twice");
                 }
-            },
-            {
-                test_name: "three rooms added should return all rooms in correct order",
-                event_count: 3,
-                test: (history) => {
-                    const result = slice(history);
-                    //assert(, "Three rooms should be returned");
-                    //assert(, "First room should be Moonshine");
-                    //assert(, "Second room should be Sunshine");
-                    //assert(, "Third room should be Lago");
-                    assert(false, "Implement me")
-                }
-            },
-            {
-                test_name: "Booked Room is not in the list anymore",
-                event_count: 4,
-                test: (history) => {
-                    const result = slice(history);
-                    //assert(, "2 rooms should be returned");
-                    //assert(, "first room should now be Sunshine");
-                    //assert(, "second room should now be be Lago");
-                    assert(false, "Implement me")
-                }
-            },
+            }
         ]
     });
 }
 
+
 export const runTests = (): TestResult[] => {
-    prepareTestCollection((events:Event[])=>{
-        return availableRoomsStateView(events as InventoryEvents[])
+    prepareTest((events:Event[], command?:BookRoomCommand)=>{
+        return commandHandler(events, command!!)
     })
     let results: TestResult[] = []
     test_collection.forEach(slice => {
         slice.tests.forEach(test_case => {
             try {
-                test_case.test(slice.sample_history.slice(0, test_case.event_count));
+                test_case.test(slice.sample_history.slice(0, test_case.event_count), test_case.command);
                 results.push({test_name: test_case.test_name, passed: true})
             } catch (error) {
                 results.push({test_name: test_case.test_name, passed: false, message: error?.toString()})
