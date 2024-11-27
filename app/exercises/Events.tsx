@@ -2,13 +2,14 @@ import {Event} from "@event-driven-io/emmett";
 
 export type RoomAdded = Event<'RoomAdded', {
     roomNumber: string
-    floor: number
+    floor: number,
+    name: string
 }>
 export type RoomBooked = Event<'RoomBooked', {
-    roomNumber: string
+    name: string
 }>
 export type RoomReadied = Event<'RoomReadied', {
-    roomNumber: string
+    name: string
 }>
 
-export type Events = RoomAdded | RoomBooked | RoomReadied
+export type InventoryEvents = RoomAdded | RoomBooked | RoomReadied

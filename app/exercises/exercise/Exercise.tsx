@@ -1,93 +1,110 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import MarkdownViewer from "@/app/components/MarkdownViewer";
-import {Command} from "@event-driven-io/emmett";
-import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
-import {RoomAdded} from "@/app/exercises/Events";
-
+import {Command, Event} from "@event-driven-io/emmett";
+import {debugAllStreams, findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
+import {InventoryEvents, RoomBooked} from "@/app/exercises/Events";
+import AddRoom from "@/app/exercises/exercise/addroom/AddRoom";
 const markdown = require('!raw-loader!./exercise.md').default;
 
-// STEP 1 - UNCOMMNENT THIS BLOCK
-/*export type AddRoomCommand = Command<
-    'AddRoom',
-    {
-        roomNumber: string,
-        floor: number,
-        name: string
-    }
->;*/
-
-export const commandHandler = (command: Command) => {
-    switch (command.type) {
-        case 'AddRoom':
-        // STEP 2 - UNCOMMENT THE COMMAND HANDLER
-        /*findEventStore().appendToStream(
-            'Inventory',
-            [{} as RoomAdded]
-        )*/
-    }
+// STEP 1 - STATE VIEW SLICE - AVAILABLE ROOMS
+/**
+ * Data Projection
+ */
+type AvailableRoom = {
+    number: string,
+    name: string
 }
+
+//  TODO : project events to available rooms
+const availableRoomsStateView = (events: InventoryEvents[]): AvailableRoom[] => {
+    let result: AvailableRoom[] = []
+    events.forEach((event) => {
+        /*
+        FOR EACH EVENT - adjust the result-array.
+        If a Room is added, append it to the array. ( result.push(...) )
+        If a Room is booked, remove it from the array. ( result = result.filter(...) )
+         */
+    })
+    return result
+}
+
+export type BookRoomCommand = Command<
+    'BookRoom',
+    {
+        name: string,
+    }
+>;
+
+
+
+export const commandHandler = (command: BookRoomCommand) => {
+    findEventStore().appendToStream(
+        'Inventory',
+        [{
+            type: 'RoomBooked',
+            data: {
+                name: command.data.name
+            }
+        } as RoomBooked]
+    )
+
+}
+
+
 
 export default function Exercise() {
 
-    const [roomNumber, setRoomNumber] = useState<string>()
-    const [floor, setFloor] = useState<number>()
-    const [roomName, setRoomName] = useState<string>()
-    const [passed, setPassed] = useState<boolean>()
+    const [selectedRoom, setSelectedRoom] = useState<string>()
+    const [projection, setProjection] = useState<AvailableRoom[]>([])
+    const [nextExpectedStreamVersion, setNextExpectedStreamVersion] = useState<bigint>()
+
+    useEffect(() => {
+        subscribeStream('Inventory', (nextExpectedStreamVersion, events) => {
+            setNextExpectedStreamVersion(nextExpectedStreamVersion)
+        })
+
+    }, []);
+
+    useEffect(() => {
+        findEventStore().readStream('Inventory').then((events) => {
+            setProjection(availableRoomsStateView(events?.events as InventoryEvents[] || []))
+        })
+    }, [nextExpectedStreamVersion])
+
 
     return <div className={"content"}>
         <div className={"columns"}>
             <div className={"column is-one-third padding control"}>
-                <h3>Add Room</h3>
-                <input
-                    value={roomName}
-                    onChange={(evt) => setRoomName(evt.target.value)}
+                <AddRoom/>
+                <hr/>
+                <h3>Book Room</h3>
+                <select
+                    className={"select"}
+                    value={selectedRoom}
+                    onChange={(evt) => setSelectedRoom(evt.target.value)}
                     required={true}
-                    className="input is-link is-half"
-                    type="text"
-                    placeholder="Room Name"
-                />
-                <input
-                    value={roomNumber}
-                    onChange={(evt) => setRoomNumber(evt.target.value)}
-                    required={true}
-                    className="input is-link is-half"
-                    type="text"
-                    placeholder="Room Number"
-                />
-                <input
-                    required={true}
-                    value={floor}
-                    onChange={(evt) => setFloor(parseInt(evt.target.value))}
-                    className="input is-half"
-                    type="number"
-                    placeholder="Floor"
-                />
+                >
+                    <option>Select Room</option>
+                    {
+                        projection.map(addedRoom => <option selected={addedRoom.name == selectedRoom}
+                                                            value={addedRoom.name}>{addedRoom.name}</option>)
+                    }
+                </select>
+
                 <div className={"control"}>
                     <button onClick={() => {
-                        // STEP 3 - APPLY THE COMMAND
-                        /*commandHandler(
+                        commandHandler(
                             {
                                 data: {
+                                    name: selectedRoom
                                 },
-                                type:
-                            }
-                        )*/
+                                type: 'BookRoom'
+                            } as BookRoomCommand
+                        )
                     }} className={"button is-info m-2"}>Book Room
                     </button>
-                    <button className={"is-success m-2 button"} onClick={() => {
-                        findEventStore().readStream('Inventory').then((events) => {
-                            if (events?.events.length == 2 &&
-                                events?.events?.every(event => event.type == 'RoomAdded')
-                                && (events?.events.some(event => event.data.name == 'Sunshine')
-                                    || events?.events.some(event => event.data.name == 'Moonshine')))
-                                setPassed(true)
-                        })
-                    }}>Verify
-                    </button>
                 </div>
-                <div>
-                    <div>Passed: {passed?.toString() ?? false?.toString()}</div>
-                </div>
+
             </div>
 
 
