@@ -1,4 +1,4 @@
-import {TestResult} from "@/app/exercises/tests/TestRunner";
+import {TestResult} from "@/app/slices/tests/TestRunner";
 
 export const TestResultViewr = (props: {results: TestResult[]})=>{
     return <div>
