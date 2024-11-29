@@ -21,7 +21,7 @@ export default function AddAttendant() {
 
     const [name, setName] = useState<string>()
 
-    return <div className={"content box"}>
+    return <div className={"content box disabled"}>
         <h3>Add Attendant</h3>
         <input
             value={name}

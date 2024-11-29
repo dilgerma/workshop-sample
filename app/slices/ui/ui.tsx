@@ -52,6 +52,9 @@ export default function Ui() {
     }, []);
 
     return <div className={"content"}>
+        <details>
+            <MarkdownViewer markdown={markdown}/>
+        </details>
         <div className={"columns"}>
             <div className={"column is-one-third padding control"}>
                 <AddAttendant/>
@@ -59,7 +62,7 @@ export default function Ui() {
                 <BookRooms/>
             </div>
             <div className={"column is-one-third "}>
-                {roomsToClean?.length??0 > 0 ?  <div className={"box"}>
+                {roomsToClean?.length ?? 0 > 0 ? <div className={"box"}>
                     <h3>Rooms to clean</h3>
                     <ul>
                         {roomsToClean?.map(room => {
@@ -67,7 +70,7 @@ export default function Ui() {
                         })}
                     </ul>
                 </div> : <span/>}
-                {attendants?.length??0 > 0 ? <div className={"box"}>
+                {attendants?.length ?? 0 > 0 ? <div className={"box"}>
                     <h3>Attendants available today</h3>
                     <ul>
                         {attendants?.map(room => {
@@ -87,8 +90,6 @@ export default function Ui() {
             </div>
         </div>
 
-        <details>
-            <MarkdownViewer markdown={markdown}/>
-        </details>
+
     </div>
 }

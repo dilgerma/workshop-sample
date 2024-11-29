@@ -33,7 +33,7 @@ export default function WeatherForecast() {
         })
     }, []);
 
-    return <div className={"content box has-background-warning"}>
+    return <div className={"content box has-background-warning disabled"}>
         <h3>Weather Forecast</h3>
         <input className={"m-3"} type={"date"} value={date?.toISOString().split("T")[0] || ""}
                onChange={(evt) => setDate(evt.target.valueAsDate!!)}/>

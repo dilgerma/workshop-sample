@@ -48,7 +48,7 @@ export default function BookRooms() {
         }
     }, [fromDate, toDate])
 
-    return <div className={"content box"}>
+    return <div className={"content box disabled"}>
         <h3>Book Room</h3>
         <div>
             <select
