@@ -1,7 +1,7 @@
 
 
 
-## Exercise
+## Ui
 
 In this exercise, you will again build a set of test cases, but this time for a state change slice.
 
