@@ -3,6 +3,20 @@ import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEven
 import {Event, Command} from "@event-driven-io/emmett";
 import {InventoryEvents, RoomAdded} from "@/app/slices/Events";
 
+/** Exercise */
+let roomsStateView = (events: InventoryEvents[]): { name: string, pricePerNight: number, roomNumber: string }[] => {
+
+    let result: { name: string, pricePerNight: number, roomNumber: string }[] = []
+    /*
+     * STEP 1 - implement the State View to list all rooms available.
+     * Use forEach(events) and process 'RoomAdded' Events.
+     *
+     * Check for event.type == 'RoomAdded'
+     */
+    return result
+
+}
+
 export type AddRoomCommand = Command<'AddRoom', {
     name: string,
     costPerNight: number,
@@ -28,23 +42,6 @@ const addRoomCommandHandler = (events: Event[], command: AddRoomCommand) => {
     } else {
         throw Error("Cannot add room twice")
     }
-
-}
-
-let roomsStateView = (events: InventoryEvents[]): { name: string, pricePerNight: number, roomNumber: string }[] => {
-
-    let result: { name: string, pricePerNight: number, roomNumber: string }[] = []
-    events.forEach((event) => {
-        switch (event.type) {
-            case "RoomAdded":
-                result.push({
-                    name: event.data.name,
-                    roomNumber: event.data.roomNumber,
-                    pricePerNight: event.data.costPerNight
-                })
-        }
-    })
-    return result
 
 }
 

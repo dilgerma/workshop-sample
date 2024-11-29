@@ -3,59 +3,25 @@
 
 ## Ui
 
-In this exercise, you will again build a set of test cases, but this time for a state change slice.
-
-Instead of "Given / When" in the last exercise, testing state changes requires "Given / When / Then"
-
-Given a set of Events
-
-When a command gets executed
-
-Then we expect the system to be in a new state
+Implement the state view to display a list of registered rooms.
 
 ### Step 1 - Implement the state history
 
-In TestRunner.tsx - provide sample history of events.
-This should be all the events that make up the history for this slice.
+We work in app/slices/addroom/AddRoom.tsx
 
 ```
- sample_history: [
-            // STEP 1 - add sample event history
-            //{type: 'RoomAdded', data: {name: "Moonshine", roomNumber: "1a", floor: 1}},
-            // book "Moonshine"
-            // try to book "Moonshine" twice
-        ],
-```
+let roomsStateView = (events: InventoryEvents[]): { name: string, pricePerNight: number, roomNumber: string }[] => {
 
-### Step 2 - Implement the correct assertions
+    let result: { name: string, pricePerNight: number, roomNumber: string }[] = []
+    /*
+     * STEP 1 - implement the State View to list all rooms available.
+     * Use forEach(events) and process 'RoomAdded' Events.
+     * 
+     * Check for event.type == 'RoomAdded'
+     */
+    return result
 
-Based on the event history, you will need to provide the correct 
-assertions to make the test cases green.
-
-We need to implement at least 2 test cases.
-
-Book a room that was added
-
-Try to book a room twice
-
-```
-{
-    test_name: "Added Room should result in room booked event",
-    // how many events to take from the history
-    event_count: 1,
-    
-    test: (events:Event[], command?:BookRoomCommand) => {
-      
-      // execute the commandHandler
-      const result = commandHandler(events, command!!);
-      
-      // assert on state - result are the resulting events
-        assert(result.length == 1, "")
-        assert(result[0].type == 'RoomBooked', "")
-    },
-    
-    command: {type: 'BookRoom', data: {
-            name: "Moonshine",
-        }}
 }
 ```
+
+<div style="position: relative; padding-bottom: 63.52941176470588%; height: 0;"><iframe src="https://www.loom.com/embed/bd57206a4dbd4dbcaf06a2ab0fee46dc?sid=faa7c87f-996c-484b-972c-309051d87eb7" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
