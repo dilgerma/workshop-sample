@@ -4,6 +4,7 @@ import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
 import {InventoryEvents, RoomBooked} from "@/app/slices/Events";
 import {AvailableRoom, bookableRoomsStateView} from "@/app/slices/bookableRooms/bookableRoomsStateView";
 import {v4} from "uuid";
+import BookableRoomStateViewTest from "@/app/slices/bookableRooms/bookableRoomStateViewTest";
 
 
 export type BookRoomCommand = Command<
@@ -99,6 +100,8 @@ export default function BookRooms() {
 
         }}>Reload
         </button>
+
+        <BookableRoomStateViewTest/>
 
     </div>
 }

@@ -1,6 +1,6 @@
 import {TestResult} from "@/app/slices/tests/TestRunner";
 
-export const TestResultViewr = (props: {results: TestResult[]})=>{
+export const TestResultViewer = (props: {results: TestResult[]})=>{
     return <div>
         {props.results.map(result => <div>
             <div className={"mb-2 p-2"}>
