@@ -1,54 +1,13 @@
-import {useEffect, useState} from "react";
-import {Command} from "@event-driven-io/emmett";
-import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
-import {InventoryEvents, RoomBooked} from "@/app/slices/Events";
-import {AvailableRoom, bookableRoomsStateView} from "@/app/slices/bookableRooms/bookableRoomsStateView";
-import {v4} from "uuid";
-
-
-export type BookRoomCommand = Command<
-    'BookRoom',
-    {
-        name: string,
-        fromDate: Date,
-        toDate: Date
-    }
->;
-
-export const bookRoomCommandHandler = async (command: BookRoomCommand) => {
-    await findEventStore().appendToStream(
-        'Inventory',
-        [{
-            type: 'RoomBooked',
-            data: {
-                id: v4(),
-                name: command.data.name,
-                from: new Date(command.data.fromDate),
-                to: new Date(command.data.toDate)
-            }
-        } as RoomBooked]
-    )
-
-}
+import {useState} from "react";
 
 export default function BookRooms() {
 
     const [selectedRoom, setSelectedRoom] = useState<string>("")
-    const [projection, setProjection] = useState<AvailableRoom[]>([])
 
     const [fromDate, setFromDate] = useState<Date | null>()
     const [toDate, setToDate] = useState<Date | null>()
 
-
-    useEffect(() => {
-        if (fromDate && toDate) {
-            findEventStore().readStream('Inventory').then((events) => {
-                setProjection(bookableRoomsStateView(events?.events as InventoryEvents[] || [], fromDate, toDate))
-            })
-        }
-    }, [fromDate, toDate])
-
-    return <div className={"content box"}>
+    return <div className={"content box disabled"}>
         <h3>Book Room</h3>
         <div>
             <select
@@ -58,10 +17,6 @@ export default function BookRooms() {
                 required={true}
             >
                 <option>Select Room</option>
-                {
-                    projection.map(addedRoom => <option selected={addedRoom.name == selectedRoom}
-                                                        value={addedRoom.name}>{addedRoom.name}</option>)
-                }
             </select>
         </div>
         <div>
@@ -72,31 +27,9 @@ export default function BookRooms() {
         </div>
 
         <button onClick={async () => {
-            if (selectedRoom) {
-                await bookRoomCommandHandler(
-                    {
-                        data: {
-                            name: selectedRoom,
-                            fromDate: fromDate!!,
-                            toDate: toDate!!
-                        },
-                        type: 'BookRoom'
-                    }
-                )
-                setFromDate(null)
-                setToDate(null)
-                setProjection([])
-            }
-
         }} className={"button is-info m-2"}>Book Room
         </button>
         <button className={"button m-2"} onClick={() => {
-            if (fromDate && toDate) {
-                findEventStore().readStream('Inventory').then((events) => {
-                    setProjection(bookableRoomsStateView(events?.events as InventoryEvents[] || [], fromDate!!, toDate!!))
-                });
-            }
-
         }}>Reload
         </button>
 

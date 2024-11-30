@@ -3,25 +3,11 @@ import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
 import {Event, Command} from "@event-driven-io/emmett";
 import {AttendantAdded, InventoryEvents, RoomAdded} from "@/app/slices/Events";
 
-export type AddAttendantCommand = Command<'AddAttendant', {
-    name: string
-}>
-
-const addAttendantCommandHandler = (events: Event[], command: AddAttendantCommand) => {
-
-    findEventStore().appendToStream('Inventory', [{
-        type: 'AttendantAdded',
-        data: {
-            name: command.data.name
-        }
-    } as AttendantAdded]);
-}
-
 export default function AddAttendant() {
 
     const [name, setName] = useState<string>()
 
-    return <div className={"content box"}>
+    return <div className={"content box disabled"}>
         <h3>Add Attendant</h3>
         <input
             value={name}
@@ -33,16 +19,6 @@ export default function AddAttendant() {
         />
         <div className={"control"}>
             <button onClick={async () => {
-                if(name) {
-                    let result = await findEventStore().readStream("Inventory")
-                    let events = result?.events || []
-                    addAttendantCommandHandler(events, {
-                        type: 'AddAttendant', data: {
-                            name: name!!
-                        }
-                    })
-                    setName("")
-                }
             }} className={"button is-info m-2"}>Add Attendant</button>
         </div>
     </div>

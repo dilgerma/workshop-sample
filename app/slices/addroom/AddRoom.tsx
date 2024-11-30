@@ -2,34 +2,31 @@ import {useState} from "react";
 import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
 import {Event, Command} from "@event-driven-io/emmett";
 import {RoomAdded} from "@/app/slices/Events";
+import {name} from "estree-util-is-identifier-name";
 
-export type AddRoomCommand = Command<'AddRoom', {
-    name: string,
-    costPerNight: number,
-    roomNumber: string
-}>
-
-const addRoomCommandHandler = (events: Event[], command: AddRoomCommand) => {
-
-    var addedRooms = events.filter(it => it.type == "RoomAdded").reduce((acc: string[], event: Event) => {
-        acc.push((event as RoomAdded).data.name);
-        return acc; // Return the updated accumulator
-    }, []);
-
-    if (!addedRooms.includes(command.data.name)) {
-        findEventStore().appendToStream('Inventory', [{
-            type: 'RoomAdded',
-            data: {
-                name: command.data.name,
-                roomNumber: command.data.roomNumber,
-                costPerNight: command.data.costPerNight
-            }
-        } as RoomAdded]);
-    } else {
-        throw Error("Cannot add room twice")
+// STEP 1 - UNCOMMNENT THIS BLOCK
+/*export type AddRoomCommand = Command<
+    'AddRoom',
+    {
+        roomNumber: string,
+        name: string,
+        costPerNight: number
     }
+>;*/
 
-}
+// STEP 2
+// implement the command handler.
+// findEventstore().append...
+
+/*const addRoomCommandHandler = async (events: Event[], command: AddRoomCommand): Promise<Event[]> => {
+    return [{
+        type: 'RoomAdded',
+        data: {
+           // TODO define data
+        }
+    } as RoomAdded]
+}*/
+
 
 export default function AddRoom() {
 
@@ -67,20 +64,26 @@ export default function AddRoom() {
         <div className={"control"}>
             <button onClick={async () => {
 
-                if(roomName && costPerNight && roomNumber) {
+                if (roomName && costPerNight && roomNumber) {
                     let result = await findEventStore().readStream("Inventory")
                     let events = result?.events || []
-                    addRoomCommandHandler(events, {
-                        type: 'AddRoom', data: {
-                            name: roomName!!,
-                            costPerNight: costPerNight,
-                            roomNumber: roomNumber!!
-                        }
-                    })
-                    setRoomName("")
-                    setCostPerNight(Number(""))
-                    setRoomNumber("")
+                    /*
+                    let command: AddRoomCommand = {
+                        data: {
+                            name: roomName,
+                            roomNumber: roomNumber,
+                            costPerNight: costPerNight
+                        },
+                        type: 'AddRoom'
+                    }
+                    let resultEvents = await addRoomCommandHandler(events, command)
+                    await findEventStore().appendToStream('Inventory', resultEvents)
+                    */
                 }
+
+                setRoomName("")
+                setCostPerNight(Number(""))
+                setRoomNumber("")
 
             }} className={"button is-info m-2"}>Add Room
             </button>

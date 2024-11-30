@@ -102,3 +102,20 @@ a {
 .rjsf button {
   margin-top: 15px;
 }
+
+.box.disabled {
+  position: relative; /* Needed for positioning the overlay */
+  pointer-events: none; /* Disables interactions */
+  opacity: 0.6; /* Makes the box look faded */
+}
+
+.box.disabled::before {
+  content: ""; /* Required to display the pseudo-element */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5); /* White overlay */
+  z-index: 1; /* Ensure it is above the content */
+}
