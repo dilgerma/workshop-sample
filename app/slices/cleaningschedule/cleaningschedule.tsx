@@ -31,7 +31,7 @@ export const CleaningscheduleUI = () => {
         });
     }, []);
 
-    return <div className={"box"}>
+    return <div className={"box disabled"}>
           <div >
             <h3>Cleaning Schedule <br/>({new Date().toLocaleDateString()})</h3>
               {cleaningSchedule.length>0 ?<ul>

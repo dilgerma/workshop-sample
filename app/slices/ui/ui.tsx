@@ -16,6 +16,7 @@ import {
     availableAttendantsStateView,
     roomsToCleanStateView
 } from "@/app/slices/assignAttendant/assignAttendantProcessor";
+import BookableRoomStateViewTest from "@/app/slices/bookableRooms/bookableRoomStateViewTest";
 
 const markdown = require('!raw-loader!./exercise.md').default;
 
