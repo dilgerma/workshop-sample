@@ -32,25 +32,17 @@ type CancelPayment = Command<'CancelPayment', {
 
 const paymentTodosStateView = (events: PaymentEvents[]): { id: string, amount: number }[] => {
     let result: { id: string, amount: number }[] = []
-    events.forEach((event) => {
+    // STEP 1 - uncomment this code block and implement the logic
+    /*events.forEach((event) => {
         switch (event.type) {
             case 'PaymentRequested':
-                let paymentRequested = event as PaymentRequested
-                result.push({
-                    id: paymentRequested.data.referenceId,
-                    amount: paymentRequested.data.amount}
-                )
-                return
+                // opens the TODO
             case 'PaymentProcessed':
-                let paymentProcessed = event as PaymentProcessed
-                result = result.filter(it => it.id !== paymentProcessed.data.referenceId)
-                return
+                // closes the TODO
             case 'PaymentFailed':
-                let paymentFailed = event as PaymentFailed
-                result = result.filter(it => it.id !== paymentFailed.data.referenceId)
-                return
+                // keeps the TODO open
         }
-    })
+    })*/
     return result
 }
 
@@ -160,7 +152,7 @@ export const Payment = () => {
         subscribeStream('Payment', async ()=>{
             let result = await findEventStore().readStream("Payment");
             let events = result?.events??[]
-            paymentProcessor(events as PaymentEvents[])
+            await paymentProcessor(events as PaymentEvents[])
         })
     }, []);
 
