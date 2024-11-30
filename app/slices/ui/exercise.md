@@ -1,61 +1,34 @@
 
 
 
-## Ui
+## Exercise 6
 
-In this exercise, you will again build a set of test cases, but this time for a state change slice.
+In this exercise, we will implement a simple Translation Pattern. 
 
-Instead of "Given / When" in the last exercise, testing state changes requires "Given / When / Then"
+Our Hotel offers BBQs once a week.
+BBQs are planned in advance but are strongly affected by the weather conditions.
 
-Given a set of Events
+If there is a bad weather forecast, BBQs are automatically cancelled.
 
-When a command gets executed
+<iframe width="800" height="444" src="https://www.loom.com/embed/45401a9d23ac4976b578534488fd9094?sid=985b98f6-1e57-4473-9da0-0ef7a1826fdd" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
-Then we expect the system to be in a new state
+Weather Forecasts have a dedicated eventstream "Weather" in our Eventstore.
+Weather forecasts could as well come via an Webhook, API Call or Kafka Record.
 
-### Step 1 - Implement the state history
+### Step 1 - Implement the processor logic
 
-In TestRunner.tsx - provide sample history of events.
-This should be all the events that make up the history for this slice.
+Implement the logic in app/slices/weatherforecast/weatherForecastProcessor.ts
 
-```
- sample_history: [
-            // STEP 1 - add sample event history
-            //{type: 'RoomAdded', data: {name: "Moonshine", roomNumber: "1a", floor: 1}},
-            // book "Moonshine"
-            // try to book "Moonshine" twice
-        ],
-```
-
-### Step 2 - Implement the correct assertions
-
-Based on the event history, you will need to provide the correct 
-assertions to make the test cases green.
-
-We need to implement at least 2 test cases.
-
-Book a room that was added
-
-Try to book a room twice
+You can use the "isSameDay"-Helper function from "util"
+BBQ is cancelled if there is a bad weather forecast for the same day.
 
 ```
-{
-    test_name: "Added Room should result in room booked event",
-    // how many events to take from the history
-    event_count: 1,
-    
-    test: (events:Event[], command?:BookRoomCommand) => {
-      
-      // execute the commandHandler
-      const result = commandHandler(events, command!!);
-      
-      // assert on state - result are the resulting events
-        assert(result.length == 1, "")
-        assert(result[0].type == 'RoomBooked', "")
-    },
-    
-    command: {type: 'BookRoom', data: {
-            name: "Moonshine",
-        }}
+const forecastGivenEvent = event as WeatherForecastedGiven;
+const plannedBBQ = // find all planned BBQs for a given day
+if (plannedBBQ && forecastGivenEvent.data.forecast == Forecast.BAD) {
+    // execute command
+    await findEventStore().appendToStream('Inventory', resultEvents);
 }
+
 ```
+

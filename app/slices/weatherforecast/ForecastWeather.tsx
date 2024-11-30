@@ -3,7 +3,7 @@ import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEven
 import {Event, Command} from "@event-driven-io/emmett";
 import {BBQCancelled, BBQPlanned, Forecast, RoomAdded, WeatherForecastedGiven} from "@/app/slices/Events";
 import {normalizeToMidnight} from "@/app/util/dates";
-import {weatherForecastProcessor} from "@/app/slices/weatherforecastprocessor/weatherForecastProcessor";
+import {weatherForecastProcessor} from "@/app/slices/weatherforecast/weatherForecastProcessor";
 
 
 export type ForecastWeather = Command<'ForecastWeather', {
