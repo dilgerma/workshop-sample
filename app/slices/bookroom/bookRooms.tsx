@@ -1,10 +1,10 @@
 import {useEffect, useState} from "react";
-import {Command} from "@event-driven-io/emmett";
+import {Command, Event} from "@event-driven-io/emmett";
 import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
 import {InventoryEvents, RoomBooked} from "@/app/slices/Events";
 import {AvailableRoom, bookableRoomsStateView} from "@/app/slices/bookableRooms/bookableRoomsStateView";
 import {v4} from "uuid";
-import BookableRoomStateViewTest from "@/app/slices/bookableRooms/bookableRoomStateViewTest";
+import BookRoomTest from "@/app/slices/bookroom/bookRoomTest";
 
 
 export type BookRoomCommand = Command<
@@ -16,19 +16,20 @@ export type BookRoomCommand = Command<
     }
 >;
 
-export const bookRoomCommandHandler = async (command: BookRoomCommand) => {
-    await findEventStore().appendToStream(
-        'Inventory',
-        [{
-            type: 'RoomBooked',
-            data: {
-                id: v4(),
-                name: command.data.name,
-                from: new Date(command.data.fromDate),
-                to: new Date(command.data.toDate)
-            }
-        } as RoomBooked]
-    )
+export const bookRoomCommandHandler = async (events: InventoryEvents[], command: BookRoomCommand): Promise<Event[]> => {
+
+     /*
+     STEP 1 - implement precondition and check that the room is not booked
+
+     events.forEach((event) => {
+        switch (event.type) {
+            case "RoomBooked":
+            // TODO check for the given room
+        }
+    })
+      */
+
+    return []
 
 }
 
@@ -74,7 +75,9 @@ export default function BookRooms() {
 
         <button onClick={async () => {
             if (selectedRoom) {
-                await bookRoomCommandHandler(
+                let events = await findEventStore().readStream("Inventory")
+                let result = await bookRoomCommandHandler(
+                    events?.events as InventoryEvents[],
                     {
                         data: {
                             name: selectedRoom,
@@ -83,6 +86,10 @@ export default function BookRooms() {
                         },
                         type: 'BookRoom'
                     }
+                )
+                await findEventStore().appendToStream(
+                    'Inventory',
+                    result
                 )
                 setFromDate(null)
                 setToDate(null)
@@ -101,7 +108,7 @@ export default function BookRooms() {
         }}>Reload
         </button>
 
-        <BookableRoomStateViewTest/>
+        <BookRoomTest/>
 
     </div>
 }

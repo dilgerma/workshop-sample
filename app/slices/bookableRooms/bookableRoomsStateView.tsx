@@ -19,7 +19,7 @@ export const bookableRoomsStateView = (events: InventoryEvents[], from: Date, to
                 return
             case "RoomBooked":
                 result = result.filter(it =>
-                    it.name != event.data.name || (normalizeToMidnight(event.data.to) <= normalizeToMidnight(from) || normalizeToMidnight(event.data.from) >= normalizeToMidnight(to))
+                    it.name != event.data.name || event.data.to <= from || event.data.from >= to
                 );
                 return
         }

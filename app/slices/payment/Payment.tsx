@@ -161,7 +161,7 @@ export const Payment = () => {
     }, []);
 
     return <div>
-        {bookings?.length??0  > 0 ? <div className={"box"}>
+        {bookings?.length??0  > 0 ? <div className={"box disabled"}>
             <h3>Checkout</h3>
             <select
                 value={selectedBookingIndex}
