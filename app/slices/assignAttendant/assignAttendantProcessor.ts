@@ -62,19 +62,11 @@ export const attendantScheduleProcessor = async (today: Date) => {
     let events: Event[] = result?.events ?? []
     let roomsToClean = roomsToCleanStateView(events as InventoryEvents[])
     let availableAttendants = availableAttendantsStateView(events as InventoryEvents[])
-    for (const room of roomsToClean) {
 
-        if (availableAttendants.length > 0) {
-            // Call commandHandler for each room and assign the current attendant
-            let resultEvents = await assignAttendantCommandHandler(events, {
-                type: 'AssignAttendant',
-                data: {
-                    roomName: room,
-                    attendant: availableAttendants[0]
-                },
-            });
-            await findEventStore().appendToStream("Inventory", resultEvents)
-        }
-
-    }
+    /**
+     * STEP 1
+     *
+     * implement the automation logic based on the "rooms to clean" and
+     * the currently "available attendants"
+     */
 }

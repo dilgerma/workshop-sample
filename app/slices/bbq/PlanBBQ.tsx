@@ -61,7 +61,7 @@ export default function PlanBBQ() {
         })
     }, []);
 
-    return <div className={"box"}>
+    return <div className={"box disabled"}>
         <h3>Plan next BBQ</h3>
         <small>Only one BBQ per day</small>
         <input className={"m-3"} type={"date"} value={date?.toISOString().split("T")[0] || ""}

@@ -6,8 +6,12 @@ export const normalizeToMidnight = (date: Date): Date => {
 
 export const isWithinRange = (today:Date, from:Date, to:Date): boolean => {
     // Check if 'today' is within the 'from' and 'to' range (inclusive)
-    return today >= from && today <= to;
+    return toDateOnly(today) >= toDateOnly(from) && toDateOnly(today) <= toDateOnly(to);
 }
+
+
+export const toDateOnly = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
 
 export const isToday = (date:Date) => {
     const today = new Date();

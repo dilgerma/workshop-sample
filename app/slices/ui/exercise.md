@@ -1,61 +1,41 @@
 
 
 
-## Ui
+## Exercise 5
 
-In this exercise, you will again build a set of test cases, but this time for a state change slice.
+In this exercise, we will implement a first automation. 
 
-Instead of "Given / When" in the last exercise, testing state changes requires "Given / When / Then"
+Whenever a room is booked **today**, it has to be assigned for an Attendant to clean.
+The automation builds a cleaning schedule for the day by assigning attendants in the background on the data provided.
 
-Given a set of Events
+<iframe width="800" height="444" src="https://www.loom.com/embed/942a144c42ea45a88f8c6608f6aa2416?sid=4d33dc05-db71-4a0d-a0fb-f1b97cefb20b" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
-When a command gets executed
+### Implemenet the processor
 
-Then we expect the system to be in a new state
-
-### Step 1 - Implement the state history
-
-In TestRunner.tsx - provide sample history of events.
-This should be all the events that make up the history for this slice.
+In "app/slices/assignAttendant/assignAttendantProcessor.tsx", you´ll need to implement the 
+processor logic based on the state views already configured.
 
 ```
- sample_history: [
-            // STEP 1 - add sample event history
-            //{type: 'RoomAdded', data: {name: "Moonshine", roomNumber: "1a", floor: 1}},
-            // book "Moonshine"
-            // try to book "Moonshine" twice
-        ],
+for (const room of roomsToClean) {
+
+        if (availableAttendants.length > 0) {
+            // Call commandHandler for each room and assign the current attendant
+            // execute assign attendant command
+        }
+
+    }
 ```
 
-### Step 2 - Implement the correct assertions
+This is an implementation of a simple Polling processor, that continuously runs every day ( or in our case every 10 seconds ).
 
-Based on the event history, you will need to provide the correct 
-assertions to make the test cases green.
-
-We need to implement at least 2 test cases.
-
-Book a room that was added
-
-Try to book a room twice
+The processor is registered in **app/slices/ui/ui.tsx**
 
 ```
-{
-    test_name: "Added Room should result in room booked event",
-    // how many events to take from the history
-    event_count: 1,
-    
-    test: (events:Event[], command?:BookRoomCommand) => {
-      
-      // execute the commandHandler
-      const result = commandHandler(events, command!!);
-      
-      // assert on state - result are the resulting events
-        assert(result.length == 1, "")
-        assert(result[0].type == 'RoomBooked', "")
-    },
-    
-    command: {type: 'BookRoom', data: {
-            name: "Moonshine",
-        }}
-}
+useEffect(() => {
+    const intervalId = setInterval(async () => {
+        await attendantScheduleProcessor(new Date())
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+}, []);
 ```
