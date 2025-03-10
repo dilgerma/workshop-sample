@@ -119,3 +119,7 @@ a {
   background: rgba(255, 255, 255, 0.5); /* White overlay */
   z-index: 1; /* Ensure it is above the content */
 }
+
+.panel-heading {
+  color: white !important
+}
