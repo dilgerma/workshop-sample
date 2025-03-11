@@ -8,7 +8,6 @@ import {ItemArchived} from "@/app/api/events/ItemArchived";
 import {ItemArchiveRequested} from "@/app/api/events/ItemArchiveRequested";
 import {Pricechanged} from "@/app/api/events/Pricechanged";
 import {Itemremoved} from "@/app/api/events/Itemremoved";
-import {ItemAdded} from "@/app/api/events/ItemAdded";
 
 export type CartEvents = Cartcleared | 
 InventoryUpdated | 
@@ -19,5 +18,4 @@ ItemAdded |
 ItemArchived | 
 ItemArchiveRequested | 
 Pricechanged | 
-Itemremoved | 
-ItemAdded
+Itemremoved

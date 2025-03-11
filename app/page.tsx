@@ -3,6 +3,7 @@
 import React, {useEffect} from "react";
 import {DebugEvents} from "@/app/debug/eventsdebug";
 import Navigation from "@/app/components/Navigation";
+import CartItems from "@/app/slices/cartitems/CartItems";
 
 export default function PrototypePage() {
 
@@ -12,7 +13,7 @@ export default function PrototypePage() {
         <div className="">
             <div className="columns">
                 <div className={"container"}>
-                   hallo
+                   <CartItems aggregateId={"1"}/>
                 </div>
             </div>
         </div>
