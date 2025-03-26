@@ -1,13 +1,14 @@
 import {useState} from "react";
 import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
-import {Event, Command} from "@event-driven-io/emmett";
-import {AttendantAdded, InventoryEvents, RoomAdded} from "@/app/slices/Events";
+import {Command, Event} from "@event-driven-io/emmett";
+import {AttendantAdded, InventoryEvents} from "@/app/api/Events";
+import {Streams} from "@/app/api/Streams";
 
 export type AddAttendantCommand = Command<'AddAttendant', {
     name: string
 }>
 
-const addAttendantCommandHandler = async (events: Event[], command: AddAttendantCommand): Promise<Event[]> => {
+const addAttendantCommandHandler = (events: InventoryEvents[], command: AddAttendantCommand): Event[] => {
 
     return [{
         type: 'AttendantAdded',
@@ -34,14 +35,14 @@ export default function AddAttendant() {
         <div className={"control"}>
             <button onClick={async () => {
                 if(name) {
-                    let result = await findEventStore().readStream("Inventory")
+                    let result = await findEventStore().readStream<InventoryEvents>(Streams.Inventory)
                     let events = result?.events || []
-                    let resultEvents = await addAttendantCommandHandler(events, {
+                    let resultEvents = addAttendantCommandHandler(events, {
                         type: 'AddAttendant', data: {
                             name: name!!
                         }
                     })
-                    await findEventStore().appendToStream("Inventory", resultEvents)
+                    await findEventStore().appendToStream(Streams.Inventory, resultEvents)
                     setName("")
                 }
             }} className={"button is-info m-2"}>Add Attendant</button>

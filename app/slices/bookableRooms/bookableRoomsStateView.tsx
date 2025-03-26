@@ -1,4 +1,4 @@
-import {InventoryEvents} from "@/app/slices/Events";
+import {InventoryEvents} from "@/app/api/Events";
 import {normalizeToMidnight} from "@/app/util/dates";
 
 export type AvailableRoom = {
@@ -6,9 +6,8 @@ export type AvailableRoom = {
     name: string
 }
 
-// https://miro.com/app/board/uXjVL_kfvMw=/?moveToWidget=3458764608858298187&cot=14
-export const bookableRoomsStateView = (events: InventoryEvents[], from: Date, to: Date): AvailableRoom[] => {
-    let result: AvailableRoom[] = []
+export const bookableRoomsStateView = (state: AvailableRoom[], events: InventoryEvents[], from: Date, to: Date): AvailableRoom[] => {
+    let result: AvailableRoom[] = state
     events.forEach((event) => {
         switch (event.type) {
             case "RoomAdded":

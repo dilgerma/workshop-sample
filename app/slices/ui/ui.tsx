@@ -2,11 +2,9 @@ import {useEffect, useState} from "react";
 import MarkdownViewer from "@/app/components/MarkdownViewer";
 import BookRooms from "@/app/slices/bookroom/bookRooms";
 import AddRoom from "@/app/slices/addroom/AddRoom";
-import {AttendantAdded, AttendantAssigned, InventoryEvents, RoomBooked} from "@/app/slices/Events";
-import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
+import {InventoryEvents} from "@/app/api/Events";
+import {subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
 import AddAttendant from "@/app/slices/attendant/AddAttendant";
-import {Command, Event} from "@event-driven-io/emmett";
-import {isToday, isWithinRange} from "@/app/util/dates";
 import {CleaningscheduleUI} from "@/app/slices/cleaningschedule/cleaningschedule";
 import PlanBBQ from "@/app/slices/bbq/PlanBBQ";
 import WeatherForecast from "@/app/slices/weatherforecast/ForecastWeather";
@@ -16,15 +14,16 @@ import {
     availableAttendantsStateView,
     roomsToCleanStateView
 } from "@/app/slices/assignAttendant/assignAttendantProcessor";
+import {Streams} from "@/app/api/Streams";
+import {Rooms} from "@/app/slices/rooms/Rooms";
 
 const markdown = require('!raw-loader!./exercise.md').default;
 
 
-
 export default function Ui() {
 
-    const [roomsToClean, setRoomsToClean] = useState<string[]>()
-    const [attendants, setAttendants] = useState<string[]>()
+    const [roomsToClean, setRoomsToClean] = useState<string[]>([])
+    const [attendants, setAttendants] = useState<string[]>([])
 
     useEffect(() => {
         const intervalId = setInterval(async () => {
@@ -35,18 +34,12 @@ export default function Ui() {
     }, []);
 
     useEffect(() => {
-        subscribeStream("Inventory", () => {
-            findEventStore().readStream("Inventory").then(events => {
-                let roomsToClean = roomsToCleanStateView(events?.events as InventoryEvents[] || [])
-                setRoomsToClean(roomsToClean)
-            })
+        subscribeStream(Streams.Inventory, (nextExpectedStreamVersion, events: InventoryEvents[]) => {
+            setRoomsToClean((prevState: string[]) => roomsToCleanStateView(prevState, events as InventoryEvents[] || []))
         })
 
-        subscribeStream("Inventory", () => {
-            findEventStore().readStream("Inventory").then(events => {
-                let attendants = availableAttendantsStateView(events?.events as InventoryEvents[] || [])
-                setAttendants(attendants)
-            })
+        subscribeStream(Streams.Inventory, (nextExpectedStreamVersion, events) => {
+            setAttendants((prevState: string[]) => availableAttendantsStateView(prevState, events || []))
         })
 
     }, []);
@@ -60,6 +53,7 @@ export default function Ui() {
             <div className={"column is-one-third padding control"}>
                 <AddAttendant/>
                 <AddRoom/>
+                <Rooms/>
                 <BookRooms/>
             </div>
             <div className={"column is-one-third "}>

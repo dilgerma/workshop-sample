@@ -1,15 +1,17 @@
 import {useEffect, useState} from "react";
 import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
 import {Event, Command} from "@event-driven-io/emmett";
-import {BBQCancelled, BBQPlanned, RoomAdded} from "@/app/slices/Events";
+import {BBQCancelled, BBQPlanned, RoomAdded} from "@/app/api/Events";
 import {isSameDay, normalizeToMidnight} from "@/app/util/dates";
+import {Streams} from "@/app/api/Streams";
 
 export type PlanBBQ = Command<'PlanBBQ', {
     date: Date
 }>
 
-export const plannedBBQStateViews = (events: Event[]) => {
-    let bbqs: { date: Date, cancelled: boolean }[] = []
+export type BBQ =  { date: Date, cancelled: boolean }
+export const plannedBBQStateViews = (state: BBQ[], events: Event[]) => {
+    let bbqs:BBQ[] = state
     events.forEach((event: Event) => {
         switch (event.type) {
             case 'BBQPlanned':
@@ -28,7 +30,7 @@ export const plannedBBQStateViews = (events: Event[]) => {
     return bbqs
 }
 
-const planBBQCommandHandler = async (events: Event[], command: PlanBBQ): Promise<Event[]> => {
+const planBBQCommandHandler = (events: Event[], command: PlanBBQ): Event[] => {
 
     var plannedBBQs = events.filter(it => it.type == "BBQPlanned").reduce((acc: Date[], event: Event) => {
         acc.push((event as BBQPlanned).data.date);
@@ -51,13 +53,11 @@ const planBBQCommandHandler = async (events: Event[], command: PlanBBQ): Promise
 export default function PlanBBQ() {
 
     const [date, setDate] = useState<Date | null>()
-    const [plannedBBQs, setPlannedBBQs] = useState<{ date: Date, cancelled: boolean }[]>([])
+    const [plannedBBQs, setPlannedBBQs] = useState<BBQ[]>([])
 
     useEffect(() => {
-        subscribeStream('Inventory', async () => {
-            let result = await findEventStore().readStream('Inventory')
-            let events = result?.events ?? []
-            setPlannedBBQs(plannedBBQStateViews(events))
+        subscribeStream(Streams.BBQ, async (nextExpectedStreamVersion, events:Event[]) => {
+            setPlannedBBQs((prevState)=>plannedBBQStateViews(prevState||[],events))
         })
     }, []);
 
@@ -69,14 +69,14 @@ export default function PlanBBQ() {
         <div className={"control"}>
             <button onClick={async () => {
                 if (date) {
-                    let events = await findEventStore().readStream("Inventory")
+                    let events = await findEventStore().readStream(Streams.BBQ)
 
-                    let resultEvents = await planBBQCommandHandler(events?.events || [], {
+                    let resultEvents = planBBQCommandHandler(events?.events || [], {
                         type: 'PlanBBQ', data: {
                             date: date!!
                         }
                     })
-                    await findEventStore().appendToStream("Inventory", resultEvents)
+                    await findEventStore().appendToStream(Streams.BBQ, resultEvents)
                     setDate(null)
                 }
 

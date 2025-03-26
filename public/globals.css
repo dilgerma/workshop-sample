@@ -88,7 +88,7 @@ a {
   z-index: 100 !important;
   position: absolute;
   width: 450px;
-  top:15px;
+  bottom:55px;
   right: 20px;
   max-height: 500px;
   overflow-y: scroll;

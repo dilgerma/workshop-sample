@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
 import {
+    InventoryEvents,
     PaymentEvents,
     PaymentFailed,
     PaymentProcessed,
@@ -7,15 +8,12 @@ import {
     RoomAdded,
     RoomBooked,
     RoomBookingClosed
-} from "@/app/slices/Events";
+} from "@/app/api/Events";
 import {Command, Event} from '@event-driven-io/emmett'
 import {countDays} from "@/app/util/dates";
 import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
 import {paymentAPI} from "@/app/slices/payment/ExternalPaymentAPI";
-
-/*
-* https://miro.com/app/board/uXjVL_kfvMw=/?moveToWidget=3458764608860900378&cot=14
-* */
+import {Streams} from "@/app/api/Streams";
 
 type RequestPayment = Command<'RequestPayment', {
     bookingId: string,
@@ -29,9 +27,9 @@ type CancelPayment = Command<'CancelPayment', {
     bookingId: string
 }>
 
-
-const paymentTodosStateView = (events: PaymentEvents[]): { id: string, amount: number }[] => {
-    let result: { id: string, amount: number }[] = []
+export type Payment = { id: string, amount: number }
+const paymentTodosStateView = (state: Payment[], events: PaymentEvents[]): Payment[] => {
+    let result: { id: string, amount: number }[] = state
     events.forEach((event) => {
         switch (event.type) {
             case 'PaymentRequested':
@@ -54,36 +52,37 @@ const paymentTodosStateView = (events: PaymentEvents[]): { id: string, amount: n
     return result
 }
 
-const paymentProcessor = async (events: PaymentEvents[]) => {
+const paymentProcessor = async () => {
 
-    let paymentTodoItems = paymentTodosStateView(events)
+    let result = await findEventStore().readStream<PaymentEvents>(Streams.Payment)
+    let paymentTodoItems = paymentTodosStateView([],result?.events||[])
     if (paymentTodoItems.length > 0) {
         try {
             paymentAPI.executePayment(paymentTodoItems[0].id, paymentTodoItems[0].amount);
-            let resultEvents = await confirmPaymentCommandHandler(events, {
+            let resultEvents = confirmPaymentCommandHandler(result?.events||[], {
                 type: 'ConfirmPayment',
                 data: {
                     bookingId: paymentTodoItems[0].id
                 }
             })
-            await findEventStore().appendToStream("Payment", resultEvents)
+            await findEventStore().appendToStream(Streams.Payment, resultEvents)
 
         } catch (error) {
             console.log(error)
-            let resultEvents = await confirmPaymentCommandHandler(events, {
+            let resultEvents = confirmPaymentCommandHandler(result?.events||[], {
                 type: 'CancelPayment',
                 data: {
                     bookingId: paymentTodoItems[0].id
                 }
             })
-            await findEventStore().appendToStream("Payment", resultEvents)
+            await findEventStore().appendToStream(Streams.Payment, resultEvents)
 
         }
     }
 
 }
 
-const requestPaymentCommandHandler = async (events: Event[], command: RequestPayment): Promise<Event[]> => {
+const requestPaymentCommandHandler = (events: Event[], command: RequestPayment): Event[] => {
     return [
         {
             type: 'PaymentRequested',
@@ -95,7 +94,7 @@ const requestPaymentCommandHandler = async (events: Event[], command: RequestPay
     ]
 }
 
-const confirmPaymentCommandHandler =  async (events: Event[], command: ConfirmPayment | CancelPayment) : Promise<Event[]> => {
+const confirmPaymentCommandHandler =  (events: Event[], command: ConfirmPayment | CancelPayment) : Event[] => {
     return [
         {
             type: command.type == 'CancelPayment' ? 'PaymentFailed' : 'PaymentProcessed',
@@ -106,34 +105,30 @@ const confirmPaymentCommandHandler =  async (events: Event[], command: ConfirmPa
     ]
 }
 
-const bookingsStateView = (events: Event[]) => {
+export type Booking = { bookingId: string, name: string, fromDate: Date, toDate: Date, totalCost: number }
+const bookingsStateView = (events: InventoryEvents[]) => {
 
     let rooms: { name: string, costPerNight: number }[] = []
-    let bookings: { bookingId: string, name: string, fromDate: Date, toDate: Date, totalCost: number }[] = []
+    let bookings: Booking[] = []
 
     events.forEach((event) => {
         switch (event.type) {
             case 'RoomAdded':
-                let roomAdded: RoomAdded = event as RoomAdded
-                rooms.push({name: roomAdded.data.name, costPerNight: roomAdded.data.costPerNight})
+                rooms.push({name: event.data.name, costPerNight: event.data.costPerNight})
                 return
             case 'RoomBooked':
-                let roomBooked: RoomBooked = event as RoomBooked
                 let totalCost = countDays(
-                    roomBooked.data.from,
-                    roomBooked.data.to
-                ) * rooms.find(it => it.name == roomBooked.data.name)!!.costPerNight
+                    event.data.from,
+                    event.data.to
+                ) * rooms.find(it => it.name == event.data.name)!!.costPerNight
                 bookings.push({
-                    bookingId: roomBooked.data.id,
-                    name: roomBooked.data.name,
-                    fromDate: roomBooked.data.from,
-                    toDate: roomBooked.data.to,
+                    bookingId: event.data.id,
+                    name: event.data.name,
+                    fromDate: event.data.from,
+                    toDate: event.data.to,
                     totalCost
                 })
                 return
-            case 'BookingClosed':
-                let bookingClosedEvent = event as RoomBookingClosed
-                bookings = bookings.filter(it => it.bookingId !== bookingClosedEvent.data.id)
         }
     })
 
@@ -142,25 +137,17 @@ const bookingsStateView = (events: Event[]) => {
 
 export const Payment = () => {
 
-    const [bookings, setBookings] = useState<{
-        bookingId: string,
-        name: string,
-        fromDate: Date,
-        toDate: Date,
-        totalCost: number
-    }[]>()
+    const [bookings, setBookings] = useState<Booking[]>([])
     const [selectedBookingIndex, setSelectedBookingIndex] = useState<number | undefined>();
 
     useEffect(() => {
-        subscribeStream('Inventory', async () => {
-            let events = await findEventStore().readStream("Inventory");
-            setBookings(bookingsStateView(events?.events ?? []))
+        subscribeStream(Streams.Inventory, async (_:bigint, events:InventoryEvents[]) => {
+            let eventResult = await findEventStore().readStream<InventoryEvents>(Streams.Inventory)
+            setBookings(bookingsStateView(eventResult?.events||[]))
         })
 
-        subscribeStream('Payment', async ()=>{
-            let result = await findEventStore().readStream("Payment");
-            let events = result?.events??[]
-            paymentProcessor(events as PaymentEvents[])
+        subscribeStream(Streams.Payment, async (_:bigint)=>{
+            await paymentProcessor()
         })
     }, []);
 
@@ -191,16 +178,16 @@ export const Payment = () => {
             )}
             <div className={"top-margin"}>
                 <button className={"button is-info"} onClick={async () => {
-                    var result = await findEventStore().readStream("Inventory");
+                    var result = await findEventStore().readStream(Streams.Inventory);
                     if (bookings && selectedBookingIndex !== undefined) {
-                        let resultEvents = await requestPaymentCommandHandler(result?.events ?? [], {
+                        let resultEvents = requestPaymentCommandHandler(result?.events ?? [], {
                             type: "RequestPayment",
                             data: {
                                 amount: (bookings[selectedBookingIndex]).totalCost,
                                 bookingId: bookings[selectedBookingIndex].bookingId
                             }
                         });
-                       await findEventStore().appendToStream('Payment',resultEvents)
+                       await findEventStore().appendToStream(Streams.Payment,resultEvents)
                     }
 
                 }}>Pay

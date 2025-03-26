@@ -1,9 +1,9 @@
 import {useEffect, useState} from "react";
 import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
-import {Event, Command} from "@event-driven-io/emmett";
-import {BBQCancelled, BBQPlanned, Forecast, RoomAdded, WeatherForecastedGiven} from "@/app/slices/Events";
-import {normalizeToMidnight} from "@/app/util/dates";
+import {Command, Event} from "@event-driven-io/emmett";
+import {Forecast, WeatherForecastedGiven} from "@/app/api/Events";
 import {weatherForecastProcessor} from "@/app/slices/weatherforecastprocessor/weatherForecastProcessor";
+import {Streams} from "@/app/api/Streams";
 
 
 export type ForecastWeather = Command<'ForecastWeather', {
@@ -11,7 +11,7 @@ export type ForecastWeather = Command<'ForecastWeather', {
     forecast: Forecast
 }>
 
-const weatherForeastCommandHandler = async (events: Event[], command: ForecastWeather): Promise<Event[]> => {
+const weatherForeastCommandHandler = (events: Event[], command: ForecastWeather): Event[] => {
     return [{
         type: 'WeatherForecastedGiven',
         data: {
@@ -28,8 +28,8 @@ export default function WeatherForecast() {
     const [forecast, setForecast] = useState<Forecast>()
 
     useEffect(() => {
-        subscribeStream('Weather', async (_, events)=>{
-            await weatherForecastProcessor(events)
+        subscribeStream(Streams.Weather, async (_, events)=>{
+            await weatherForecastProcessor()
         })
     }, []);
 
@@ -46,14 +46,14 @@ export default function WeatherForecast() {
         <div className={"control"}>
             <button onClick={async () => {
                 if (date && forecast) {
-                   let resultEvents = await weatherForeastCommandHandler([], {
+                   let resultEvents = weatherForeastCommandHandler([], {
                         type: "ForecastWeather",
                         data: {
                             date: date,
                             forecast: forecast
                         }
                     });
-                    await findEventStore().appendToStream('Weather',resultEvents)
+                    await findEventStore().appendToStream(Streams.Weather,resultEvents)
                 }
 
             }} className={"button is-info m-2"}>Forecast</button>

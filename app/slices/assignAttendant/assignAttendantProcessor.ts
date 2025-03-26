@@ -1,7 +1,8 @@
 import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
 import {Command, Event} from "@event-driven-io/emmett";
-import {AttendantAdded, AttendantAssigned, InventoryEvents} from "@/app/slices/Events";
+import {AttendantAdded, AttendantAssigned, InventoryEvents} from "@/app/api/Events";
 import {isToday, isWithinRange} from "@/app/util/dates";
+import {Streams} from "@/app/api/Streams";
 
 
 type AssignAttendantCommand = Command<'AssignAttendant', {
@@ -9,7 +10,7 @@ type AssignAttendantCommand = Command<'AssignAttendant', {
     attendant: string
 }>
 
-const assignAttendantCommandHandler = async (events: Event[], command: AssignAttendantCommand): Promise<Event[]> => {
+const assignAttendantCommandHandler = (events: InventoryEvents[], command: AssignAttendantCommand): InventoryEvents[] => {
     return [
         {
             type: "AttendantAssigned",
@@ -18,13 +19,13 @@ const assignAttendantCommandHandler = async (events: Event[], command: AssignAtt
                 attendantName: command.data.attendant,
                 date: new Date()
             }
-        } as AttendantAssigned
+        }
     ];
 }
 
 
-export const roomsToCleanStateView = (events: InventoryEvents[]): string[] => {
-    let result: string[] = []
+export const roomsToCleanStateView = (state: string[], events: InventoryEvents[]): string[] => {
+    let result: string[] = state
     events.forEach((event) => {
         switch (event.type) {
             case "RoomBooked":
@@ -39,8 +40,8 @@ export const roomsToCleanStateView = (events: InventoryEvents[]): string[] => {
     return result
 }
 
-export const availableAttendantsStateView = (events: Event[]) => {
-    let result: string[] = []
+export const availableAttendantsStateView = (state:string[], events: Event[]):string[] => {
+    let result: string[] = state
     events.forEach((event => {
         switch (event.type) {
             case 'AttendantAdded':
@@ -58,22 +59,22 @@ export const availableAttendantsStateView = (events: Event[]) => {
 }
 
 export const attendantScheduleProcessor = async (today: Date) => {
-    let result = await findEventStore().readStream("Inventory")
-    let events: Event[] = result?.events ?? []
-    let roomsToClean = roomsToCleanStateView(events as InventoryEvents[])
-    let availableAttendants = availableAttendantsStateView(events as InventoryEvents[])
+    let result = await findEventStore().readStream<InventoryEvents>(Streams.Inventory)
+    let events: InventoryEvents[] = result?.events ?? []
+    let roomsToClean = roomsToCleanStateView([],events)
+    let availableAttendants = availableAttendantsStateView([],events)
     for (const room of roomsToClean) {
 
         if (availableAttendants.length > 0) {
             // Call commandHandler for each room and assign the current attendant
-            let resultEvents = await assignAttendantCommandHandler(events, {
+            let resultEvents = assignAttendantCommandHandler(events, {
                 type: 'AssignAttendant',
                 data: {
                     roomName: room,
                     attendant: availableAttendants[0]
                 },
             });
-            await findEventStore().appendToStream("Inventory", resultEvents)
+            await findEventStore().appendToStream(Streams.Inventory, resultEvents)
         }
 
     }

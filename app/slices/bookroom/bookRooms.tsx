@@ -1,9 +1,10 @@
 import {useEffect, useState} from "react";
 import {Command,Event} from "@event-driven-io/emmett";
 import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
-import {InventoryEvents, RoomBooked} from "@/app/slices/Events";
+import {InventoryEvents, RoomBooked} from "@/app/api/Events";
 import {AvailableRoom, bookableRoomsStateView} from "@/app/slices/bookableRooms/bookableRoomsStateView";
 import {v4} from "uuid";
+import {Streams} from "@/app/api/Streams";
 
 
 export type BookRoomCommand = Command<
@@ -15,7 +16,7 @@ export type BookRoomCommand = Command<
     }
 >;
 
-export const bookRoomCommandHandler = async (command: BookRoomCommand): Promise<Event[]> => {
+export const bookRoomCommandHandler = (events: Event[], command: BookRoomCommand): Event[] => {
     return [{
             type: 'RoomBooked',
             data: {
@@ -30,7 +31,7 @@ export const bookRoomCommandHandler = async (command: BookRoomCommand): Promise<
 export default function BookRooms() {
 
     const [selectedRoom, setSelectedRoom] = useState<string>("")
-    const [projection, setProjection] = useState<AvailableRoom[]>([])
+    const [availableRooms, setAvailableRooms] = useState<AvailableRoom[]>([])
 
     const [fromDate, setFromDate] = useState<Date | null>()
     const [toDate, setToDate] = useState<Date | null>()
@@ -38,8 +39,9 @@ export default function BookRooms() {
 
     useEffect(() => {
         if (fromDate && toDate) {
-            findEventStore().readStream('Inventory').then((events) => {
-                setProjection(bookableRoomsStateView(events?.events as InventoryEvents[] || [], fromDate, toDate))
+
+            findEventStore().readStream<InventoryEvents>(Streams.Inventory).then((events) => {
+                setAvailableRooms((prevState:AvailableRoom[])=> bookableRoomsStateView([],events?.events || [], fromDate, toDate))
             })
         }
     }, [fromDate, toDate])
@@ -55,7 +57,7 @@ export default function BookRooms() {
             >
                 <option>Select Room</option>
                 {
-                    projection.map(addedRoom => <option selected={addedRoom.name == selectedRoom}
+                    availableRooms.map(addedRoom => <option selected={addedRoom.name == selectedRoom}
                                                         value={addedRoom.name}>{addedRoom.name}</option>)
                 }
             </select>
@@ -69,7 +71,7 @@ export default function BookRooms() {
 
         <button onClick={async () => {
             if (selectedRoom) {
-                let resultEvents = await bookRoomCommandHandler(
+                let resultEvents = bookRoomCommandHandler([],
                     {
                         data: {
                             name: selectedRoom,
@@ -82,15 +84,15 @@ export default function BookRooms() {
                 await findEventStore().appendToStream("Inventory", resultEvents)
                 setFromDate(null)
                 setToDate(null)
-                setProjection([])
+                setAvailableRooms([])
             }
 
         }} className={"button is-info m-2"}>Book Room
         </button>
         <button className={"button m-2"} onClick={() => {
             if (fromDate && toDate) {
-                findEventStore().readStream('Inventory').then((events) => {
-                    setProjection(bookableRoomsStateView(events?.events as InventoryEvents[] || [], fromDate!!, toDate!!))
+                findEventStore().readStream(Streams.Inventory).then((events) => {
+                    setAvailableRooms(bookableRoomsStateView([], events?.events as InventoryEvents[] || [], fromDate!!, toDate!!))
                 });
             }
 

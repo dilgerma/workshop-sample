@@ -1,7 +1,8 @@
 import {useEffect, useState} from "react";
-import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
-import {Event, Command} from "@event-driven-io/emmett";
-import {InventoryEvents, RoomAdded} from "@/app/slices/Events";
+import {findEventStore, subscribeStream, unsubscribeStream} from "@/app/infrastructure/inmemoryEventstore";
+import {Command, Event} from "@event-driven-io/emmett";
+import {InventoryEvents, RoomAdded} from "@/app/api/Events";
+import {Streams} from "@/app/api/Streams";
 
 export type AddRoomCommand = Command<'AddRoom', {
     name: string,
@@ -9,7 +10,7 @@ export type AddRoomCommand = Command<'AddRoom', {
     roomNumber: string
 }>
 
-const addRoomCommandHandler = async (events: Event[], command: AddRoomCommand): Promise<Event[]> => {
+const addRoomCommandHandler = (events: Event[], command: AddRoomCommand): Event[] => {
 
     var addedRooms = events.filter(it => it.type == "RoomAdded").reduce((acc: string[], event: Event) => {
         acc.push((event as RoomAdded).data.name);
@@ -31,9 +32,10 @@ const addRoomCommandHandler = async (events: Event[], command: AddRoomCommand): 
 
 }
 
-let roomsStateView = (events: InventoryEvents[]): { name: string, pricePerNight: number, roomNumber: string }[] => {
+export type Room = { name: string, pricePerNight: number, roomNumber: string }
+let roomsStateView = (state:Room[], events: InventoryEvents[]): Room[] => {
 
-    let result: { name: string, pricePerNight: number, roomNumber: string }[] = []
+    let result: Room[] = state || []
     events.forEach((event) => {
         switch (event.type) {
             case "RoomAdded":
@@ -53,16 +55,6 @@ export default function AddRoom() {
     const [roomNumber, setRoomNumber] = useState<string>()
     const [roomName, setRoomName] = useState<string>()
     const [costPerNight, setCostPerNight] = useState<number>()
-    const [rooms, setRooms] = useState<{ name: string, pricePerNight: number, roomNumber: string }[]>()
-
-    useEffect(() => {
-        subscribeStream("Inventory", async (_)=>{
-            let result = await findEventStore().readStream("Inventory")
-            let events = result?.events
-
-            setRooms(roomsStateView(events as InventoryEvents[]))
-        })
-    }, []);
 
     return <div className={"content box"}>
         <h3>Add Room</h3>
@@ -95,16 +87,16 @@ export default function AddRoom() {
             <button onClick={async () => {
 
                 if (roomName && costPerNight && roomNumber) {
-                    let result = await findEventStore().readStream("Inventory")
+                    let result = await findEventStore().readStream(Streams.Inventory)
                     let events = result?.events || []
-                    let resultEvents = await addRoomCommandHandler(events, {
+                    let resultEvents = addRoomCommandHandler(events, {
                         type: 'AddRoom', data: {
                             name: roomName!!,
                             costPerNight: costPerNight,
                             roomNumber: roomNumber!!
                         }
                     })
-                    await findEventStore().appendToStream("Inventory", resultEvents)
+                    await findEventStore().appendToStream(Streams.Inventory, resultEvents)
                     setRoomName("")
                     setCostPerNight(Number(""))
                     setRoomNumber("")
@@ -112,12 +104,6 @@ export default function AddRoom() {
 
             }} className={"button is-info m-2"}>Add Room
             </button>
-            <div>
-                <h3>Rooms</h3>
-                {rooms?.map((room)=>{
-                    return <div>{room.name} / {room.pricePerNight}</div>
-                })}
-            </div>
         </div>
     </div>
 }

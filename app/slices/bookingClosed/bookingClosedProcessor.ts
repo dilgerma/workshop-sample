@@ -1,8 +1,7 @@
-import {PaymentEvents, RoomBookingClosed} from "@/app/slices/Events";
+import {PaymentEvents, RoomBookingClosed} from "@/app/api/Events";
 import {Command, Event} from "@event-driven-io/emmett";
 import {findEventStore} from "@/app/infrastructure/inmemoryEventstore";
-
-// https://miro.com/app/board/uXjVL_kfvMw=/?moveToWidget=3458764608862608893&cot=10
+import {Streams} from "@/app/api/Streams";
 
 type CloseBookingCommand = Command<'CloseBooking', {
     bookingId: string
@@ -25,7 +24,7 @@ export const bookingClosedProcessor = async (events: PaymentEvents[]) => {
                     type: 'CloseBooking',
                     data: { bookingId: event.data.referenceId }
                 });
-                await findEventStore().appendToStream("Inventory", resultEvents)
+                await findEventStore().appendToStream(Streams.Inventory, resultEvents)
                 // You can handle resultEvents here if necessary
                 break;
             // Add other cases if needed
