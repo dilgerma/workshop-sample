@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {findEventStore, subscribeStream} from "@/app/infrastructure/inmemoryEventstore";
+import {findEventStore, subscribeStream, unsubscribeStream} from "@/app/infrastructure/inmemoryEventstore";
 import {Event, Command} from "@event-driven-io/emmett";
 import {BBQCancelled, BBQPlanned, RoomAdded} from "@/app/api/Events";
 import {isSameDay, normalizeToMidnight} from "@/app/util/dates";
@@ -10,7 +10,7 @@ export type PlanBBQ = Command<'PlanBBQ', {
 }>
 
 export type BBQ =  { date: Date, cancelled: boolean }
-export const plannedBBQStateViews = (state: BBQ[], events: Event[]) => {
+export const plannedBBQStateViews = (state: BBQ[], events: Event[]): BBQ[] => {
     let bbqs:BBQ[] = state
     events.forEach((event: Event) => {
         switch (event.type) {
@@ -56,9 +56,18 @@ export default function PlanBBQ() {
     const [plannedBBQs, setPlannedBBQs] = useState<BBQ[]>([])
 
     useEffect(() => {
-        subscribeStream(Streams.BBQ, async (nextExpectedStreamVersion, events:Event[]) => {
-            setPlannedBBQs((prevState)=>plannedBBQStateViews(prevState||[],events))
+        let subscription = subscribeStream(Streams.Weather, async (nextExpectedStreamVersion, _:Event[]) => {
+            let events = await findEventStore().readStream(Streams.BBQ)
+            setPlannedBBQs((state)=>plannedBBQStateViews([],events?.events||[]))
         })
+        return ()=>unsubscribeStream(Streams.BBQ, subscription)
+    }, []);
+    useEffect(() => {
+        let subscription = subscribeStream(Streams.BBQ, async (nextExpectedStreamVersion, _:Event[]) => {
+            let events = await findEventStore().readStream(Streams.BBQ)
+            setPlannedBBQs((state)=>plannedBBQStateViews([],events?.events||[]))
+        })
+        return ()=>unsubscribeStream(Streams.BBQ, subscription)
     }, []);
 
     return <div className={"box"}>

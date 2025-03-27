@@ -27,25 +27,30 @@ type CancelPayment = Command<'CancelPayment', {
     bookingId: string
 }>
 
-export type Payment = { id: string, amount: number }
-const paymentTodosStateView = (state: Payment[], events: PaymentEvents[]): Payment[] => {
-    let result: { id: string, amount: number }[] = state
+export type PaymentTodo = { id: string, amount: number, paid: boolean, failureCount?: number }
+const paymentTodosStateView = (state: PaymentTodo[], events: PaymentEvents[]): PaymentTodo[] => {
+    let result: PaymentTodo[] = state
+    let reference: PaymentTodo
     events.forEach((event) => {
         switch (event.type) {
             case 'PaymentRequested':
                 let paymentRequested = event as PaymentRequested
                 result.push({
-                    id: paymentRequested.data.referenceId,
-                    amount: paymentRequested.data.amount}
+                        id: paymentRequested.data.referenceId,
+                        amount: paymentRequested.data.amount,
+                        paid: false
+                    }
                 )
                 return
             case 'PaymentProcessed':
                 let paymentProcessed = event as PaymentProcessed
-                result = result.filter(it => it.id !== paymentProcessed.data.referenceId)
-                return
+                reference = result.find(it => it.id === paymentProcessed.data.referenceId)!!
+                reference.paid = true
+                return reference
             case 'PaymentFailed':
                 let paymentFailed = event as PaymentFailed
-                result = result.filter(it => it.id !== paymentFailed.data.referenceId)
+                reference = result.find(it => it.id === paymentFailed.data.referenceId)!!
+                reference.failureCount = reference.failureCount ? reference.failureCount + 1 : 1
                 return
         }
     })
@@ -55,11 +60,11 @@ const paymentTodosStateView = (state: Payment[], events: PaymentEvents[]): Payme
 const paymentProcessor = async () => {
 
     let result = await findEventStore().readStream<PaymentEvents>(Streams.Payment)
-    let paymentTodoItems = paymentTodosStateView([],result?.events||[])
+    let paymentTodoItems = paymentTodosStateView([], result?.events || []).filter(it => !it.paid)
     if (paymentTodoItems.length > 0) {
         try {
             paymentAPI.executePayment(paymentTodoItems[0].id, paymentTodoItems[0].amount);
-            let resultEvents = confirmPaymentCommandHandler(result?.events||[], {
+            let resultEvents = confirmPaymentCommandHandler(result?.events || [], {
                 type: 'ConfirmPayment',
                 data: {
                     bookingId: paymentTodoItems[0].id
@@ -69,7 +74,7 @@ const paymentProcessor = async () => {
 
         } catch (error) {
             console.log(error)
-            let resultEvents = confirmPaymentCommandHandler(result?.events||[], {
+            let resultEvents = confirmPaymentCommandHandler(result?.events || [], {
                 type: 'CancelPayment',
                 data: {
                     bookingId: paymentTodoItems[0].id
@@ -94,7 +99,7 @@ const requestPaymentCommandHandler = (events: Event[], command: RequestPayment):
     ]
 }
 
-const confirmPaymentCommandHandler =  (events: Event[], command: ConfirmPayment | CancelPayment) : Event[] => {
+const confirmPaymentCommandHandler = (events: Event[], command: ConfirmPayment | CancelPayment): Event[] => {
     return [
         {
             type: command.type == 'CancelPayment' ? 'PaymentFailed' : 'PaymentProcessed',
@@ -141,18 +146,18 @@ export const Payment = () => {
     const [selectedBookingIndex, setSelectedBookingIndex] = useState<number | undefined>();
 
     useEffect(() => {
-        subscribeStream(Streams.Inventory, async (_:bigint, events:InventoryEvents[]) => {
+        subscribeStream(Streams.Inventory, async (_: bigint, events: InventoryEvents[]) => {
             let eventResult = await findEventStore().readStream<InventoryEvents>(Streams.Inventory)
-            setBookings(bookingsStateView(eventResult?.events||[]))
+            setBookings(bookingsStateView(eventResult?.events || []))
         })
 
-        subscribeStream(Streams.Payment, async (_:bigint)=>{
+        subscribeStream(Streams.Payment, async (_: bigint) => {
             await paymentProcessor()
         })
     }, []);
 
     return <div>
-        {bookings?.length??0  > 0 ? <div className={"box"}>
+        {bookings?.length ?? 0 > 0 ? <div className={"box"}>
             <h3>Checkout</h3>
             <select
                 value={selectedBookingIndex}
@@ -187,7 +192,7 @@ export const Payment = () => {
                                 bookingId: bookings[selectedBookingIndex].bookingId
                             }
                         });
-                       await findEventStore().appendToStream(Streams.Payment,resultEvents)
+                        await findEventStore().appendToStream(Streams.Payment, resultEvents)
                     }
 
                 }}>Pay

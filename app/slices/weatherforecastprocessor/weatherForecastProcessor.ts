@@ -46,7 +46,7 @@ export const weatherForecastProcessor = async () => {
                             forecast: forecastGivenEvent.data.forecast
                         }
                     });
-                    await findEventStore().appendToStream(Streams.Inventory, resultEvents);
+                    await findEventStore().appendToStream(Streams.BBQ, resultEvents);
                 }
                 break;
         }
